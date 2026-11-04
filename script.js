@@ -57,12 +57,11 @@ const io = new IntersectionObserver(entries => {
 }, { threshold: 0.15 });
 document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
-// Contact form (validation + opens the visitor's email app)
+// Contact form (validation + sends the message through Formbold)
 const form = document.getElementById('contactForm');
 const status = document.getElementById('status');
-const RECEIVER = 'your-email@example.com'; // <-- change to Soumi's real email
 
-form.addEventListener('submit', e => {
+form.addEventListener('submit', async e => {
   e.preventDefault();
   let ok = true;
   ['name', 'email', 'message'].forEach(id => {
@@ -77,16 +76,26 @@ form.addEventListener('submit', e => {
     status.classList.add('err');
     return;
   }
-  const subject = encodeURIComponent(document.getElementById('subject').value || 'Portfolio Contact');
-  const body = encodeURIComponent(
-    'Name: ' + document.getElementById('name').value +
-    '\nEmail: ' + document.getElementById('email').value +
-    '\n\n' + document.getElementById('message').value
-  );
-  window.location.href = `mailto:${RECEIVER}?subject=${subject}&body=${body}`;
-  status.textContent = 'Thank you! Your email app is opening to send the message.';
-  status.classList.add('ok');
-  form.reset();
+  const btn = form.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  try {
+    const res = await fetch(form.action, {
+      method: 'POST',
+      body: new FormData(form),
+      headers: { Accept: 'application/json' }
+    });
+    if (!res.ok) throw new Error('Request failed');
+    status.textContent = 'Thank you! Your message has been sent.';
+    status.classList.add('ok');
+    form.reset();
+  } catch (err) {
+    status.textContent = 'Sorry, the message could not be sent. Please try again.';
+    status.classList.add('err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  }
 });
 
 document.getElementById('year').textContent = new Date().getFullYear();
